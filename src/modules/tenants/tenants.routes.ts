@@ -9,7 +9,7 @@ import {
   setActiveTenantController,
 } from './tenants.controller.js';
 
-export const tenantsRouter = Router();
+export const tenantsRouter: Router = Router();
 
 tenantsRouter.use(requireAuth, requireRole('SUPERADMIN'));
 

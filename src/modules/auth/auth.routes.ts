@@ -4,7 +4,7 @@ import { requireAuth } from '@/middleware/requireAuth.js';
 import { requireRole } from '@/middleware/requireRole.js';
 import { loginRateLimiter } from '@/middleware/rateLimiter.js';
 
-export const authRouter = Router();
+export const authRouter: Router = Router();
 
 authRouter.post('/login', loginRateLimiter, loginController);
 authRouter.get('/me', requireAuth, meController);

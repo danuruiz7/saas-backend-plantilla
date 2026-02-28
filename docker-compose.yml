@@ -1,4 +1,17 @@
 services:
+  api:
+    build: .
+    container_name: reserva_api
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://reserva_user:reserva_pass@postgres:5432/reserva_db
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     container_name: reserva_db
@@ -14,3 +27,4 @@ services:
 
 volumes:
   postgres_data:
+

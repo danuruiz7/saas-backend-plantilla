@@ -10,7 +10,7 @@ import {
   setActiveUserController,
 } from './users.controller.js';
 
-export const usersRouter = Router();
+export const usersRouter: Router = Router();
 
 usersRouter.use(requireAuth, requireRole('OWNER', 'SUPERADMIN'));
 

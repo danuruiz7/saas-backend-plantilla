@@ -33,8 +33,22 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    env: env.NODE_ENV,
+    uptime: `${Math.floor(process.uptime())}s`,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Auth Rutas para la autenticación del los usuarios
 app.use('/api/auth', authRouter);
+
+// Users Rutas para la gestión de usuarios
 app.use('/api/users', usersRouter);
+
+// Tenants Rutas para la gestión de tenants
 app.use('/api/tenants', tenantsRouter);
 
 // Global error handler (debe ir último)

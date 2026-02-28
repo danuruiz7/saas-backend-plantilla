@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { loginController, meController, selectTenantController, changePasswordController } from './auth.controller.js';
+import {
+  loginController,
+  meController,
+  selectTenantController,
+  changePasswordController,
+  refreshController,
+  logoutController,
+} from './auth.controller.js';
 import { requireAuth } from '@/middleware/requireAuth.js';
 import { requireRole } from '@/middleware/requireRole.js';
 import { loginRateLimiter } from '@/middleware/rateLimiter.js';
@@ -7,8 +14,8 @@ import { loginRateLimiter } from '@/middleware/rateLimiter.js';
 export const authRouter: Router = Router();
 
 authRouter.post('/login', loginRateLimiter, loginController);
+authRouter.post('/refresh', refreshController);
+authRouter.post('/logout', logoutController);
 authRouter.get('/me', requireAuth, meController);
 authRouter.post('/select-tenant', requireAuth, requireRole('SUPERADMIN'), selectTenantController);
 authRouter.patch('/change-password', requireAuth, changePasswordController);
-
-

@@ -6,7 +6,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('7d'),
+  JWT_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   OTP_EXPIRES_IN_MINUTES: z.coerce.number().default(10),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
 });

@@ -15,6 +15,13 @@
       "when": 1772242774413,
       "tag": "0001_fancy_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772311250816,
+      "tag": "0002_complete_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -1,25 +1,79 @@
 import type { Request, Response } from 'express';
 import { loginSchema, selectTenantSchema, changePasswordSchema } from './auth.schemas.js';
-import { loginService, meService, selectTenantService, changePasswordService } from './auth.service.js';
+import {
+  loginService,
+  meService,
+  selectTenantService,
+  changePasswordService,
+  refreshService,
+  logoutService,
+} from './auth.service.js';
+import { env } from '@/config/env.js';
+
+const REFRESH_COOKIE_NAME = 'refreshToken';
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30d in ms
+};
 
 export async function loginController(req: Request, res: Response): Promise<void> {
   const parsed = loginSchema.safeParse(req.body);
-  
+
   if (!parsed.success) {
     res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     return;
   }
 
   try {
-    const result = await loginService(parsed.data);
-    res.json(result);
+    const { accessToken, refreshToken } = await loginService(parsed.data);
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, cookieOptions);
+    res.json({ accessToken });
   } catch (err) {
-    if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
-      res.status(401).json({ error: 'INVALID_CREDENTIALS' });
+    if (err instanceof Error && ['INVALID_CREDENTIALS', 'USER_DISABLED'].includes(err.message)) {
+      res.status(401).json({ error: err.message });
       return;
     }
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
+}
+
+export async function refreshController(req: Request, res: Response): Promise<void> {
+  const token = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+
+  if (!token) {
+    res.status(401).json({ error: 'MISSING_REFRESH_TOKEN' });
+    return;
+  }
+
+  try {
+    const { accessToken } = await refreshService(token);
+    res.json({ accessToken });
+  } catch (err) {
+    res.clearCookie(REFRESH_COOKIE_NAME);
+    if (err instanceof Error && ['INVALID_REFRESH_TOKEN', 'REFRESH_TOKEN_EXPIRED', 'USER_DISABLED'].includes(err.message)) {
+      res.status(401).json({ error: err.message });
+      return;
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function logoutController(req: Request, res: Response): Promise<void> {
+  const token = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+
+  if (token) {
+    try {
+      await logoutService(token);
+    } catch {
+      // Silent — siempre limpiamos la cookie
+    }
+  }
+
+  res.clearCookie(REFRESH_COOKIE_NAME);
+  res.json({ success: true });
 }
 
 export async function meController(req: Request, res: Response): Promise<void> {

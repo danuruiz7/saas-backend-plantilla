@@ -57,11 +57,22 @@ export async function acceptInviteController(req: Request, res: Response): Promi
   try {
     await acceptInviteService(parsed.data);
     res.json({ success: true });
-  } catch (err: any) {
-    if (err.message === 'INVALID_INVITE_TOKEN') res.status(400).json({ error: 'INVALID_INVITE_TOKEN' });
-    else if (err.message === 'INVITE_TOKEN_EXPIRED') res.status(400).json({ error: 'INVITE_TOKEN_EXPIRED' });
-    else if (err.message === 'USER_ALREADY_EXISTS') res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
-    else res.status(500).json({ error: 'INTERNAL_ERROR' });
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === 'INVALID_INVITE_TOKEN') {
+        res.status(400).json({ error: 'INVALID_INVITE_TOKEN' });
+        return;
+      }
+      if (err.message === 'INVITE_TOKEN_EXPIRED') {
+        res.status(400).json({ error: 'INVITE_TOKEN_EXPIRED' });
+        return;
+      }
+      if (err.message === 'USER_ALREADY_EXISTS') {
+        res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+        return;
+      }
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 }
 

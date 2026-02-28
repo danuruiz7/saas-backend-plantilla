@@ -1,0 +1,12 @@
+import type { Request, Response, NextFunction } from 'express';
+import { logger } from '@/lib/logger.js';
+
+export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction): void {
+  if (err instanceof Error) {
+    logger.error({ err }, err.message);
+  } else {
+    logger.error({ err }, 'Unknown error');
+  }
+
+  res.status(500).json({ error: 'INTERNAL_ERROR' });
+}

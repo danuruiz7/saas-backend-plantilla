@@ -1,13 +1,19 @@
 services:
   api:
-    build: .
-    container_name: reserva_api
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: reserva_api_dev
     ports:
       - '3000:3000'
     env_file:
       - .env
     environment:
+      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+    volumes:
+      - .:/app
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -15,7 +21,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: reserva_db
+    container_name: reserva_db_dev
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -24,7 +30,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -32,4 +38,4 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
+  postgres_data_dev:

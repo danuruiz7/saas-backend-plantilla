@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js",
+    "dk:dev": "docker compose -f docker-compose.dev.yml up --build",
     "dk:prod": "docker compose up --build -d",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",

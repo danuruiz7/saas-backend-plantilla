@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { loginSchema, selectTenantSchema, changePasswordSchema } from './auth.schemas.js';
+import { loginSchema, selectTenantSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schemas.js';
 import {
   loginService,
   meService,
@@ -7,6 +7,8 @@ import {
   changePasswordService,
   refreshService,
   logoutService,
+  forgotPasswordService,
+  resetPasswordService,
 } from './auth.service.js';
 import { env } from '@/config/env.js';
 
@@ -21,19 +23,59 @@ const cookieOptions = {
 
 export async function loginController(req: Request, res: Response): Promise<void> {
   const parsed = loginSchema.safeParse(req.body);
-
   if (!parsed.success) {
     res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     return;
   }
 
   try {
-    const { accessToken, refreshToken } = await loginService(parsed.data);
+    const context = {
+      ipAddress: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    };
+
+    const { accessToken, refreshToken } = await loginService(parsed.data, context);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, cookieOptions);
     res.json({ accessToken });
   } catch (err) {
     if (err instanceof Error && ['INVALID_CREDENTIALS', 'USER_DISABLED'].includes(err.message)) {
       res.status(401).json({ error: err.message });
+      return;
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function forgotPasswordController(req: Request, res: Response): Promise<void> {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  console.log("FORGOT CONTROLLER ---> ", parsed)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    await forgotPasswordService(parsed.data);
+    // Always return success to avoid email enumeration
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function resetPasswordController(req: Request, res: Response): Promise<void> {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    await resetPasswordService(parsed.data);
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && ['INVALID_RESET_TOKEN', 'RESET_TOKEN_EXPIRED'].includes(err.message)) {
+      res.status(400).json({ error: err.message });
       return;
     }
     res.status(500).json({ error: 'INTERNAL_ERROR' });

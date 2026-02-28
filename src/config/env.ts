@@ -9,6 +9,10 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   OTP_EXPIRES_IN_MINUTES: z.coerce.number().default(10),
+  RESEND_API_KEY: z.string().min(1),
+  EMAIL_FROM: z.string().email(),
+  APP_URL: z.string().url(),
+  APP_NAME: z.string().default('SaaS Backend'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
 });
 

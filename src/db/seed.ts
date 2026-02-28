@@ -45,7 +45,7 @@ async function seed(): Promise<void> {
       tenantId: tenant2.id,
     },
     {
-      email: 'superadmin@test.com',
+      email: 'danuruiz7@hotmail.com',
       passwordHash: password,
       name: 'Super Admin',
       role: 'SUPERADMIN',
@@ -59,7 +59,7 @@ async function seed(): Promise<void> {
   console.log('  owner1@test.com     → OWNER  (Barbería El Rincón)');
   console.log('  staff1@test.com     → STAFF  (Barbería El Rincón)');
   console.log('  owner2@test.com     → OWNER  (Salón Elegance)');
-  console.log('  superadmin@test.com → SUPERADMIN');
+  console.log('  danuruiz7@hotmail.com → SUPERADMIN');
 
   process.exit(0);
 }

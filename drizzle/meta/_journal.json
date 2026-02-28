@@ -22,6 +22,20 @@
       "when": 1772311250816,
       "tag": "0002_complete_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772315704791,
+      "tag": "0003_curious_quentin_quire",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772316479430,
+      "tag": "0004_open_shen",
+      "breakpoints": true
     }
   ]
 }

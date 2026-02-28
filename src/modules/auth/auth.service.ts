@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, lt, and, inArray } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { db } from '@/db/db.js';
-import { users, tenants, refreshTokens } from '@/db/schema.js';
+import { users, tenants, refreshTokens, passwordResetTokens } from '@/db/schema.js';
 import { env } from '@/config/env.js';
-import type { LoginInput, SelectTenantInput, ChangePasswordInput } from './auth.schemas.js';
+import { sendPasswordResetEmail } from '@/lib/email.js';
+import type { LoginInput, SelectTenantInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput } from './auth.schemas.js';
 
 function parseDuration(str: string): number {
   const units: Record<string, number> = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
@@ -22,7 +23,10 @@ export async function meService(userId: string): Promise<Omit<typeof users.$infe
   return user ?? null;
 }
 
-export async function loginService(input: LoginInput): Promise<{ accessToken: string; refreshToken: string }> {
+export async function loginService(
+  input: LoginInput,
+  context?: { ipAddress?: string; userAgent?: string }
+): Promise<{ accessToken: string; refreshToken: string }> {
   const user = await db.query.users.findFirst({
     where: eq(users.email, input.email),
   });
@@ -34,6 +38,26 @@ export async function loginService(input: LoginInput): Promise<{ accessToken: st
 
   if (!user.isActive) throw new Error('USER_DISABLED');
 
+  // Limpiar tokens expirados
+  await db.delete(refreshTokens).where(
+    and(
+      eq(refreshTokens.userId, user.id),
+      lt(refreshTokens.expiresAt, new Date())
+    )
+  );
+
+  // Limitar a máximo 3 dispositivos activos por usuario
+  const activeTokens = await db.query.refreshTokens.findMany({
+    where: eq(refreshTokens.userId, user.id),
+    orderBy: (refreshTokens, { desc }) => [desc(refreshTokens.createdAt)],
+  });
+
+  if (activeTokens.length >= 3) {
+    // Si ya hay 3 (o más) activos, borramos los más viejos, dejamos solo los 2 más recientes
+    const tokensToDelete = activeTokens.slice(2).map((t) => t.id);
+    await db.delete(refreshTokens).where(inArray(refreshTokens.id, tokensToDelete));
+  }
+
   const accessToken = jwt.sign(
     { sub: user.id, email: user.email, role: user.role, tenantId: user.tenantId },
     env.JWT_SECRET,
@@ -43,7 +67,13 @@ export async function loginService(input: LoginInput): Promise<{ accessToken: st
   const refreshToken = crypto.randomBytes(64).toString('hex');
   const expiresAt = new Date(Date.now() + parseDuration(env.JWT_REFRESH_EXPIRES_IN));
 
-  await db.insert(refreshTokens).values({ userId: user.id, token: refreshToken, expiresAt });
+  await db.insert(refreshTokens).values({
+    userId: user.id,
+    token: refreshToken,
+    expiresAt,
+    ipAddress: context?.ipAddress,
+    userAgent: context?.userAgent,
+  });
 
   return { accessToken, refreshToken };
 }
@@ -109,4 +139,46 @@ export async function changePasswordService(userId: string, input: ChangePasswor
 
   const newHash = await bcrypt.hash(input.newPassword, 10);
   await db.update(users).set({ passwordHash: newHash, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function forgotPasswordService(input: ForgotPasswordInput): Promise<void> {
+  const user = await db.query.users.findFirst({ where: eq(users.email, input.email) });
+
+  // Always return success — never reveal if email exists
+  if (!user || !user.isActive) return;
+
+  // Invalidate any existing reset token for this user
+  await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, user.id));
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db.insert(passwordResetTokens).values({ userId: user.id, token, expiresAt });
+
+  const resetUrl = `${env.APP_URL}/reset-password?token=${token}`;
+  await sendPasswordResetEmail(user.email, resetUrl);
+}
+
+export async function resetPasswordService(input: ResetPasswordInput): Promise<void> {
+  const stored = await db.query.passwordResetTokens.findFirst({
+    where: eq(passwordResetTokens.token, input.token),
+  });
+
+  if (!stored) throw new Error('INVALID_RESET_TOKEN');
+
+  if (stored.expiresAt < new Date()) {
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, stored.id));
+    throw new Error('RESET_TOKEN_EXPIRED');
+  }
+
+  const newHash = await bcrypt.hash(input.password, 10);
+  await db.update(users)
+    .set({ passwordHash: newHash, updatedAt: new Date() })
+    .where(eq(users.id, stored.userId));
+
+  // Delete used token
+  await db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, stored.id));
+
+  // Invalidate all sessions (security: force re-login)
+  await db.delete(refreshTokens).where(eq(refreshTokens.userId, stored.userId));
 }

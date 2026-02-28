@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { createTenantSchema, updateTenantSchema } from './tenants.schemas.js';
-import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant } from './tenants.service.js';
+import { createTenantSchema, updateTenantSchema, createInvitationSchema } from './tenants.schemas.js';
+import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant, createInvitation } from './tenants.service.js';
 import { getPaginationParams, formatPaginatedResponse } from '@/lib/pagination.js';
 
 export async function getTenantsController(req: Request, res: Response): Promise<void> {
@@ -74,6 +74,27 @@ export function setActiveTenantController(isActive: boolean) {
       res.status(500).json({ error: 'INTERNAL_ERROR' });
     }
   };
+}
+
+export async function createInvitationController(req: Request, res: Response): Promise<void> {
+  const parsed = createInvitationSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const callerRole = req.user?.role ?? '';
+    const callerTenantId = req.user?.tenantId ?? null;
+    
+    await createInvitation(String(req.params['id']), callerRole, callerTenantId, parsed.data);
+    res.json({ success: true });
+  } catch (err: any) {
+    if (err.message === 'FORBIDDEN') res.status(403).json({ error: 'FORBIDDEN' });
+    else if (err.message === 'TENANT_NOT_FOUND') res.status(404).json({ error: 'TENANT_NOT_FOUND' });
+    else if (err.message === 'USER_ALREADY_EXISTS') res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+    else res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
 }
 
 

@@ -7,9 +7,13 @@ import {
   updateTenantController,
   deleteTenantController,
   setActiveTenantController,
+  createInvitationController,
 } from './tenants.controller.js';
 
 export const tenantsRouter: Router = Router();
+
+// Endpoint for creating invitations relies on its own role check inside the service
+tenantsRouter.post('/:id/invitations', requireAuth, createInvitationController);
 
 tenantsRouter.use(requireAuth, requireRole('SUPERADMIN'));
 

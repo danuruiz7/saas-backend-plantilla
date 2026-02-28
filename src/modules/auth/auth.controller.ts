@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { loginSchema, selectTenantSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.schemas.js';
+import { loginSchema, selectTenantSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, acceptInviteSchema } from './auth.schemas.js';
 import {
   loginService,
   meService,
@@ -9,6 +9,7 @@ import {
   logoutService,
   forgotPasswordService,
   resetPasswordService,
+  acceptInviteService,
 } from './auth.service.js';
 import { env } from '@/config/env.js';
 
@@ -43,6 +44,24 @@ export async function loginController(req: Request, res: Response): Promise<void
       return;
     }
     res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function acceptInviteController(req: Request, res: Response): Promise<void> {
+  const parsed = acceptInviteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    await acceptInviteService(parsed.data);
+    res.json({ success: true });
+  } catch (err: any) {
+    if (err.message === 'INVALID_INVITE_TOKEN') res.status(400).json({ error: 'INVALID_INVITE_TOKEN' });
+    else if (err.message === 'INVITE_TOKEN_EXPIRED') res.status(400).json({ error: 'INVITE_TOKEN_EXPIRED' });
+    else if (err.message === 'USER_ALREADY_EXISTS') res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+    else res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 }
 

@@ -3,10 +3,10 @@ import { eq, lt, and, inArray } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { db } from '@/db/db.js';
-import { users, tenants, refreshTokens, passwordResetTokens } from '@/db/schema.js';
+import { users, tenants, refreshTokens, passwordResetTokens, userInvitations } from '@/db/schema.js';
 import { env } from '@/config/env.js';
 import { sendPasswordResetEmail } from '@/lib/email.js';
-import type { LoginInput, SelectTenantInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput } from './auth.schemas.js';
+import type { LoginInput, SelectTenantInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, AcceptInviteInput } from './auth.schemas.js';
 
 function parseDuration(str: string): number {
   const units: Record<string, number> = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
@@ -181,4 +181,32 @@ export async function resetPasswordService(input: ResetPasswordInput): Promise<v
 
   // Invalidate all sessions (security: force re-login)
   await db.delete(refreshTokens).where(eq(refreshTokens.userId, stored.userId));
+}
+
+export async function acceptInviteService(input: AcceptInviteInput): Promise<void> {
+  const invitation = await db.query.userInvitations.findFirst({
+    where: eq(userInvitations.token, input.token),
+  });
+
+  if (!invitation) throw new Error('INVALID_INVITE_TOKEN');
+  if (invitation.expiresAt < new Date()) {
+    await db.delete(userInvitations).where(eq(userInvitations.id, invitation.id));
+    throw new Error('INVITE_TOKEN_EXPIRED');
+  }
+
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, invitation.email) });
+  if (existingUser) throw new Error('USER_ALREADY_EXISTS');
+
+  const passwordHash = await bcrypt.hash(input.password, 10);
+
+  await db.insert(users).values({
+    email: invitation.email,
+    passwordHash,
+    name: input.name,
+    role: invitation.role,
+    tenantId: invitation.tenantId,
+  });
+
+  // Delete used token
+  await db.delete(userInvitations).where(eq(userInvitations.id, invitation.id));
 }

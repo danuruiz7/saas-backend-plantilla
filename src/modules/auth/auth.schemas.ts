@@ -23,9 +23,16 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8),
 });
 
+export const acceptInviteSchema = z.object({
+  token: z.string().min(1),
+  name: z.string().min(1),
+  password: z.string().min(8), // Require the user to set a password
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SelectTenantInput = z.infer<typeof selectTenantSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 

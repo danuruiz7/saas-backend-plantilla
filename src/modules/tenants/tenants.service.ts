@@ -1,7 +1,10 @@
+import crypto from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db/db.js';
-import { tenants } from '@/db/schema.js';
-import type { CreateTenantInput, UpdateTenantInput } from './tenants.schemas.js';
+import { tenants, users, userInvitations } from '@/db/schema.js';
+import { env } from '@/config/env.js';
+import { sendInvitationEmail } from '@/lib/email.js';
+import type { CreateTenantInput, UpdateTenantInput, CreateInvitationInput } from './tenants.schemas.js';
 
 export async function getTenantsService(page: number, limit: number): Promise<{ data: typeof tenants.$inferSelect[]; total: number }> {
   const offset = (page - 1) * limit;
@@ -47,6 +50,32 @@ export async function setActiveTenant(id: string, isActive: boolean): Promise<bo
     .returning({ id: tenants.id });
 
   return !!updated;
+}
+
+export async function createInvitation(tenantId: string, callerRole: string, callerTenantId: string | null, input: CreateInvitationInput): Promise<void> {
+  if (callerRole !== 'SUPERADMIN' && !(callerRole === 'OWNER' && callerTenantId === tenantId)) {
+    throw new Error('FORBIDDEN');
+  }
+
+  const tenant = await db.query.tenants.findFirst({ where: eq(tenants.id, tenantId) });
+  if (!tenant) throw new Error('TENANT_NOT_FOUND');
+
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, input.email) });
+  if (existingUser) throw new Error('USER_ALREADY_EXISTS');
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await db.insert(userInvitations).values({
+    tenantId,
+    email: input.email,
+    token,
+    role: input.role,
+    expiresAt,
+  });
+
+  const inviteUrl = `${env.APP_URL}/accept-invite?token=${token}`;
+  await sendInvitationEmail(input.email, tenant.name, inviteUrl);
 }
 
 

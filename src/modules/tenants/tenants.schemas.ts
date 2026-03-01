@@ -5,9 +5,17 @@ export const createTenantSchema = z.object({
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric and hyphens'),
 });
 
+export const tenantSettingsSchema = z.object({
+  currency: z.string().optional(),
+  timezone: z.string().optional(),
+  language: z.string().optional(),
+  themeColors: z.record(z.string(), z.string()).optional(),
+});
+
 export const updateTenantSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric and hyphens').optional(),
+  settings: tenantSettingsSchema.optional(),
 });
 
 export const createInvitationSchema = z.object({

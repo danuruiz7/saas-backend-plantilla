@@ -5,6 +5,7 @@ import {
   // integer,
   timestamp,
   uuid,
+  jsonb,
   // unique,
 } from 'drizzle-orm/pg-core';
 
@@ -15,6 +16,7 @@ export const tenants = pgTable('tenants', {
   plan: text('plan', { enum: ['free', 'pro', 'enterprise'] }).notNull().default('free'),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
+  settings: jsonb('settings').default({}),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -57,6 +57,13 @@
       "when": 1772391480164,
       "tag": "0007_unusual_nextwave",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772393707688,
+      "tag": "0008_modern_wallflower",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ Plantilla robusta y genérica para aplicaciones SaaS multi-tenancy con Node.js, 
 - 🐳 **Docker**: Totalmente dockerizado con multi-stage build y `docker-compose`.
 - 💳 **Facturación (Stripe)**: Planes de suscripción (`free`, `pro`, `enterprise`), webhooks y feature flags.
 - 🤝 **Onboarding Autónomo**: Registro público para nuevos tenants y dueños (Owners).
+- ⚙️ **Configuraciones Dinámicas**: Atributos en JSONB (moneda, zona horaria, colores, idioma) por cada Tenant.
 
 ---
 

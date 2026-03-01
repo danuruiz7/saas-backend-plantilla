@@ -162,16 +162,20 @@ ALLOWED_ORIGINS=http://localhost:3001
 
 ### Tenants — `/api/tenants`
 
-> Requiere JWT + rol `SUPERADMIN`.
+> Requiere JWT + rol `SUPERADMIN`. Excepto `/invitations` que delega rol en el servicio (OWNER del propio tenant o SUPERADMIN).
 
-| Método | Ruta               | Descripción               |
-| ------ | ------------------ | ------------------------- |
-| GET    | `/`                | Lista tenants (paginado)  |
-| POST   | `/`                | Crear tenant              |
-| PATCH  | `/:id`             | Actualizar tenant         |
-| DELETE | `/:id`             | Eliminar tenant           |
-| PATCH  | `/:id/activate`    | Activar tenant            |
-| PATCH  | `/:id/deactivate`  | Desactivar tenant         |
+| Método | Ruta                                      | Descripción                                   |
+| ------ | ----------------------------------------- | --------------------------------------------- |
+| GET    | `/`                                       | Lista tenants (paginado)                      |
+| POST   | `/`                                       | Crear tenant                                  |
+| PATCH  | `/:id`                                    | Actualizar tenant                             |
+| DELETE | `/:id`                                    | Eliminar tenant                               |
+| PATCH  | `/:id/activate`                           | Activar tenant                                |
+| PATCH  | `/:id/deactivate`                         | Desactivar tenant                             |
+| POST   | `/:id/invitations`                        | Crear invitación para el tenant               |
+| GET    | `/:id/invitations`                        | Lista todas las invitaciones del tenant       |
+| DELETE | `/:id/invitations/:invitationId`          | Elimina una invitación pendiente              |
+| POST   | `/:id/invitations/:invitationId/resend`   | Reenvía correo de invitación                  |
 
 ### Health
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { createTenantSchema, updateTenantSchema, createInvitationSchema } from './tenants.schemas.js';
-import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant, createInvitation } from './tenants.service.js';
+import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant, createInvitation, getInvitations, deleteInvitation, resendInvitation } from './tenants.service.js';
 import { getPaginationParams, formatPaginatedResponse } from '@/lib/pagination.js';
 
 export async function getTenantsController(req: Request, res: Response): Promise<void> {
@@ -108,4 +108,43 @@ export async function createInvitationController(req: Request, res: Response): P
   }
 }
 
+export async function getInvitationsController(req: Request, res: Response): Promise<void> {
+  try {
+    const invites = await getInvitations(String(req.params['id']));
+    res.json(invites);
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
 
+export async function deleteInvitationController(req: Request, res: Response): Promise<void> {
+  try {
+    const deleted = await deleteInvitation(String(req.params['id']), String(req.params['invitationId']));
+    if (!deleted) {
+      res.status(404).json({ error: 'INVITATION_NOT_FOUND' });
+      return;
+    }
+    res.status(204).send();
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function resendInvitationController(req: Request, res: Response): Promise<void> {
+  try {
+    await resendInvitation(String(req.params['id']), String(req.params['invitationId']));
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === 'INVITATION_NOT_FOUND') {
+        res.status(404).json({ error: 'INVITATION_NOT_FOUND' });
+        return;
+      }
+      if (err.message === 'TENANT_NOT_FOUND') {
+        res.status(404).json({ error: 'TENANT_NOT_FOUND' });
+        return;
+      }
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}

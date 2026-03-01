@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import { db } from '@/db/db.js';
 import { tenants, users, userInvitations } from '@/db/schema.js';
 import { env } from '@/config/env.js';
@@ -78,4 +78,38 @@ export async function createInvitation(tenantId: string, callerRole: string, cal
   await sendInvitationEmail(input.email, tenant.name, inviteUrl);
 }
 
+
+export async function getInvitations(tenantId: string): Promise<typeof userInvitations.$inferSelect[]> {
+  const invites = await db.query.userInvitations.findMany({
+    where: eq(userInvitations.tenantId, tenantId),
+  });
+  return invites;
+}
+
+export async function deleteInvitation(tenantId: string, invitationId: string): Promise<boolean> {
+  const result = await db.delete(userInvitations).where(
+    and(
+      eq(userInvitations.id, invitationId),
+      eq(userInvitations.tenantId, tenantId)
+    )
+  ).returning();
+  return result.length > 0;
+}
+
+export async function resendInvitation(tenantId: string, invitationId: string): Promise<void> {
+  const invitation = await db.query.userInvitations.findFirst({
+    where: and(
+      eq(userInvitations.id, invitationId),
+      eq(userInvitations.tenantId, tenantId)
+    ),
+  });
+
+  if (!invitation) throw new Error('INVITATION_NOT_FOUND');
+  
+  const tenant = await db.query.tenants.findFirst({ where: eq(tenants.id, tenantId) });
+  if (!tenant) throw new Error('TENANT_NOT_FOUND');
+
+  const inviteUrl = `${env.APP_URL}/accept-invite?token=${invitation.token}`;
+  await sendInvitationEmail(invitation.email, tenant.name, inviteUrl);
+}
 

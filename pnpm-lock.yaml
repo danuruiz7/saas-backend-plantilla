@@ -47,6 +47,9 @@ importers:
       resend:
         specifier: ^6.9.3
         version: 6.9.3
+      stripe:
+        specifier: ^20.4.0
+        version: 20.4.0(@types/node@25.3.2)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -1644,6 +1647,15 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
+  stripe@20.4.0:
+    resolution: {integrity: sha512-F/aN1IQ9vHmlyLNi3DkiIbyzQb6gyBG0uYFd/VrEVQSc9BLtlgknPUx0EvzZdBMRLFuRaPFIFd7Mxwtg7Pbwzw==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   svix@1.84.1:
     resolution: {integrity: sha512-K8DPPSZaW/XqXiz1kEyzSHYgmGLnhB43nQCMeKjWGCUpLIpAMMM8kx3rVVOSm6Bo6EHyK1RQLPT4R06skM/MlQ==}
 
@@ -3113,6 +3125,10 @@ snapshots:
   statuses@2.0.2: {}
 
   strip-json-comments@5.0.3: {}
+
+  stripe@20.4.0(@types/node@25.3.2):
+    optionalDependencies:
+      '@types/node': 25.3.2
 
   svix@1.84.1:
     dependencies:

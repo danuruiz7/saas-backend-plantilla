@@ -14,6 +14,8 @@ const envSchema = z.object({
   APP_URL: z.string().url(),
   APP_NAME: z.string().default('SaaS Backend'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
 });
 
 const parsed = envSchema.safeParse(process.env);

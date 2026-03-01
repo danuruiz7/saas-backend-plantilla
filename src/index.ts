@@ -8,6 +8,8 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 import { tenantsRouter } from './modules/tenants/tenants.routes.js';
+import { billingRouter } from './modules/billing/billing.routes.js';
+import { webhookController } from './modules/billing/billing.controller.js';
 
 const app = express();
 
@@ -26,6 +28,9 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Stripe Webhook (debe ir antes de express.json() para conservar el body raw)
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), webhookController);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -52,6 +57,9 @@ app.use('/api/users', usersRouter);
 
 // Tenants Rutas para la gestión de tenants
 app.use('/api/tenants', tenantsRouter);
+
+// Billing
+app.use('/api/billing', billingRouter);
 
 // Global error handler (debe ir último)
 app.use(errorHandler);

@@ -13,6 +13,8 @@ export const tenants = pgTable('tenants', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   plan: text('plan', { enum: ['free', 'pro', 'enterprise'] }).notNull().default('free'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

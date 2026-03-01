@@ -89,11 +89,22 @@ export async function createInvitationController(req: Request, res: Response): P
     
     await createInvitation(String(req.params['id']), callerRole, callerTenantId, parsed.data);
     res.json({ success: true });
-  } catch (err: any) {
-    if (err.message === 'FORBIDDEN') res.status(403).json({ error: 'FORBIDDEN' });
-    else if (err.message === 'TENANT_NOT_FOUND') res.status(404).json({ error: 'TENANT_NOT_FOUND' });
-    else if (err.message === 'USER_ALREADY_EXISTS') res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
-    else res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }  catch (err) {
+    if (err instanceof Error) {
+      if (err.message === 'FORBIDDEN') {
+        res.status(403).json({ error: 'FORBIDDEN' });
+        return;
+      }
+      if (err.message === 'TENANT_NOT_FOUND') {
+        res.status(404).json({ error: 'TENANT_NOT_FOUND' });
+        return;
+      }
+      if (err.message === 'USER_ALREADY_EXISTS') {
+        res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+        return;
+      }
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
   }
 }
 

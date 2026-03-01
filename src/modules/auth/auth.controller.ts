@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { loginSchema, selectTenantSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, acceptInviteSchema } from './auth.schemas.js';
+import { loginSchema, selectTenantSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, acceptInviteSchema, registerTenantSchema } from './auth.schemas.js';
 import {
   loginService,
   meService,
@@ -10,6 +10,7 @@ import {
   forgotPasswordService,
   resetPasswordService,
   acceptInviteService,
+  registerTenantService,
 } from './auth.service.js';
 import { env } from '@/config/env.js';
 
@@ -201,6 +202,35 @@ export async function changePasswordController(req: Request, res: Response): Pro
     if (err instanceof Error && err.message === 'INVALID_CREDENTIALS') {
       res.status(401).json({ error: 'INVALID_CREDENTIALS' });
       return;
+    }
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function registerTenantController(req: Request, res: Response): Promise<void> {
+  const parsed = registerTenantSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const { user, tenant } = await registerTenantService(parsed.data);
+    res.status(201).json({
+      message: 'Tenant and User created successfully',
+      tenantId: tenant.id,
+      userId: user.id
+    });
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === 'TENANT_SLUG_TAKEN') {
+        res.status(409).json({ error: 'TENANT_SLUG_TAKEN' });
+        return;
+      }
+      if (err.message === 'USER_ALREADY_EXISTS') {
+        res.status(409).json({ error: 'USER_ALREADY_EXISTS' });
+        return;
+      }
     }
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }

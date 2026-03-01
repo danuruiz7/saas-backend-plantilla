@@ -6,7 +6,7 @@ import { db } from '@/db/db.js';
 import { users, tenants, refreshTokens, passwordResetTokens, userInvitations } from '@/db/schema.js';
 import { env } from '@/config/env.js';
 import { sendPasswordResetEmail } from '@/lib/email.js';
-import type { LoginInput, SelectTenantInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, AcceptInviteInput } from './auth.schemas.js';
+import type { LoginInput, SelectTenantInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, AcceptInviteInput, RegisterTenantInput } from './auth.schemas.js';
 
 function parseDuration(str: string): number {
   const units: Record<string, number> = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
@@ -207,6 +207,32 @@ export async function acceptInviteService(input: AcceptInviteInput): Promise<voi
     tenantId: invitation.tenantId,
   });
 
-  // Delete used token
   await db.delete(userInvitations).where(eq(userInvitations.id, invitation.id));
+}
+
+export async function registerTenantService(input: RegisterTenantInput): Promise<{ user: typeof users.$inferSelect; tenant: typeof tenants.$inferSelect }> {
+  const existingTenant = await db.query.tenants.findFirst({ where: eq(tenants.slug, input.tenantSlug) });
+  if (existingTenant) throw new Error('TENANT_SLUG_TAKEN');
+
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, input.email) });
+  if (existingUser) throw new Error('USER_ALREADY_EXISTS');
+
+  const passwordHash = await bcrypt.hash(input.password, 10);
+
+  return await db.transaction(async (tx) => {
+    const [tenant] = await tx.insert(tenants).values({
+      name: input.tenantName,
+      slug: input.tenantSlug,
+    }).returning();
+
+    const [user] = await tx.insert(users).values({
+      email: input.email,
+      name: input.userName,
+      passwordHash,
+      role: 'OWNER',
+      tenantId: tenant!.id,
+    }).returning();
+
+    return { user: user!, tenant: tenant! };
+  });
 }

@@ -5,8 +5,14 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const selectTenantSchema = z.object({
-  tenantId: z.string().uuid(),
+export const selectTenantSchema = z.object({ tenantId: z.string().uuid() });
+
+export const registerTenantSchema = z.object({
+  tenantName: z.string().min(1),
+  tenantSlug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric and hyphens'),
+  userName: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8),
 });
 
 export const changePasswordSchema = z.object({
@@ -35,4 +41,4 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
-
+export type RegisterTenantInput = z.infer<typeof registerTenantSchema>;

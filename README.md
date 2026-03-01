@@ -191,6 +191,14 @@ ALLOWED_ORIGINS=http://localhost:3001
 | POST   | `/portal`          | Redirige al Stripe Customer Portal para gestionar pagos.  |
 | POST   | `/webhook`         | Endpoint para recibir y procesar eventos de Stripe.       |
 
+### Storage — `/api/storage`
+
+> Requiere JWT. Genera URLs firmadas para carga directa (presigned URLs) a buckets S3/R2 desde el cliente.
+
+| Método | Ruta               | Descripción                                               |
+| ------ | ------------------ | --------------------------------------------------------- |
+| POST   | `/presigned-url`   | Devuelve una URL firmada de S3 para subir un archivo.     |
+
 ### Health
 
 | Método | Ruta      | Descripción           |

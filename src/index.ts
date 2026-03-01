@@ -10,6 +10,7 @@ import { usersRouter } from './modules/users/users.routes.js';
 import { tenantsRouter } from './modules/tenants/tenants.routes.js';
 import { billingRouter } from './modules/billing/billing.routes.js';
 import { webhookController } from './modules/billing/billing.controller.js';
+import { storageRouter } from './modules/storage/storage.routes.js';
 
 const app = express();
 
@@ -57,6 +58,9 @@ app.use('/api/users', usersRouter);
 
 // Tenants Rutas para la gestión de tenants
 app.use('/api/tenants', tenantsRouter);
+
+// Storage Rutas para la gestión de archivos
+app.use('/api/storage', storageRouter);
 
 // Billing
 app.use('/api/billing', billingRouter);

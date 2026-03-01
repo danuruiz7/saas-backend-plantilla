@@ -9,8 +9,30 @@ async function seed(): Promise<void> {
   const [tenant1, tenant2] = await db
     .insert(tenants)
     .values([
-      { name: 'Barbería El Rincón', slug: 'barberia-el-rincon' },
-      { name: 'Salón Elegance', slug: 'salon-elegance' },
+      { 
+        name: 'Barbería El Rincón', 
+        slug: 'barberia-el-rincon',
+        plan: 'pro',
+        settings: {
+          currency: 'USD',
+          timezone: 'America/New_York',
+          language: 'es',
+          themeColors: {
+            primary: '#1D4ED8',
+            secondary: '#10B981'
+          }
+        }
+      },
+      { 
+        name: 'Salón Elegance', 
+        slug: 'salon-elegance',
+        plan: 'free',
+        settings: {
+          currency: 'EUR',
+          timezone: 'Europe/Madrid',
+          language: 'es',
+        }
+      },
     ])
     .returning();
 

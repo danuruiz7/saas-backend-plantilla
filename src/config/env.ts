@@ -16,6 +16,12 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
   STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
+  AWS_REGION: z.string().default('us-east-1'),
+  AWS_ACCESS_KEY_ID: z.string().min(1),
+  AWS_SECRET_ACCESS_KEY: z.string().min(1),
+  AWS_S3_BUCKET: z.string().min(1),
+  AWS_S3_ENDPOINT: z.string().url().optional(),
+  AWS_S3_CDN_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

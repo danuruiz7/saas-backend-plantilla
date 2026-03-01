@@ -8,9 +8,11 @@ Plantilla robusta y genérica para aplicaciones SaaS multi-tenancy con Node.js, 
 - 🔐 **Auth & RBAC**: JWT, roles (SUPERADMIN, OWNER, STAFF), y protección de rutas.
 - 🚀 **Seguridad**: Helmet, CORS configurable, Rate Limiting y Global Error Handling.
 - 📄 **Paginación**: Utilidad genérica para respuestas paginadas.
-- 🛠️ **Arquitectura**: Módulos claros (auth, users, tenants), servicios y controladores desacoplados.
+- 🛠️ **Arquitectura**: Módulos claros (auth, users, tenants, billing), servicios y controladores desacoplados.
 - 🗃️ **Base de Datos**: PostgreSQL con Drizzle ORM y migraciones versionadas.
 - 🐳 **Docker**: Totalmente dockerizado con multi-stage build y `docker-compose`.
+- 💳 **Facturación (Stripe)**: Planes de suscripción (`free`, `pro`, `enterprise`), webhooks y feature flags.
+- 🤝 **Onboarding Autónomo**: Registro público para nuevos tenants y dueños (Owners).
 
 ---
 
@@ -142,6 +144,7 @@ ALLOWED_ORIGINS=http://localhost:3001
 | Método | Ruta              | Auth              | Descripción                                     |
 | ------ | ----------------- | ----------------- | ----------------------------------------------- |
 | POST   | `/login`          | ❌                | Autenticación. Devuelve JWT.                    |
+| POST   | `/register-tenant`| ❌                | Registro autónomo de un nuevo Tenant y su Owner.|
 | GET    | `/me`             | JWT               | Datos del usuario autenticado.                  |
 | PATCH  | `/change-password`| JWT               | Cambio de contraseña.                           |
 | POST   | `/select-tenant`  | JWT + SUPERADMIN  | Genera token impersonando un tenant.            |
@@ -176,6 +179,16 @@ ALLOWED_ORIGINS=http://localhost:3001
 | GET    | `/:id/invitations`                        | Lista todas las invitaciones del tenant       |
 | DELETE | `/:id/invitations/:invitationId`          | Elimina una invitación pendiente              |
 | POST   | `/:id/invitations/:invitationId/resend`   | Reenvía correo de invitación                  |
+
+### Billing — `/api/billing`
+
+> Requiere JWT + rol `OWNER` para generar sesiones. El webhook es público y verificado por Stripe. Adicionalmente existen guards de Feature Flags como `requirePlan('pro')`.
+
+| Método | Ruta               | Descripción                                               |
+| ------ | ------------------ | --------------------------------------------------------- |
+| POST   | `/checkout`        | Redirige al Stripe Checkout para suscribirse a un plan.   |
+| POST   | `/portal`          | Redirige al Stripe Customer Portal para gestionar pagos.  |
+| POST   | `/webhook`         | Endpoint para recibir y procesar eventos de Stripe.       |
 
 ### Health
 

@@ -11,6 +11,7 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   role: z.enum(['OWNER', 'STAFF']).optional(),
+  avatarUrl: z.string().url().optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

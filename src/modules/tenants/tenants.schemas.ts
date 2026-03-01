@@ -15,6 +15,7 @@ export const tenantSettingsSchema = z.object({
 export const updateTenantSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric and hyphens').optional(),
+  logoUrl: z.string().url().optional(),
   settings: tenantSettingsSchema.optional(),
 });
 

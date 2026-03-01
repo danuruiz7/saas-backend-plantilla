@@ -16,6 +16,7 @@ export const tenants = pgTable('tenants', {
   plan: text('plan', { enum: ['free', 'pro', 'enterprise'] }).notNull().default('free'),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
+  logoUrl: text('logo_url'),
   settings: jsonb('settings').default({}),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -27,6 +28,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name').notNull(),
+  avatarUrl: text('avatar_url'),
   role: text('role').notNull().default('STAFF'), // SUPERADMIN | OWNER | STAFF
   tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
   isActive: boolean('is_active').default(true).notNull(),

@@ -8,12 +8,13 @@ Plantilla robusta y genérica para aplicaciones SaaS multi-tenancy con Node.js, 
 - 🔐 **Auth & RBAC**: JWT, roles (SUPERADMIN, OWNER, STAFF), y protección de rutas.
 - 🚀 **Seguridad**: Helmet, CORS configurable, Rate Limiting y Global Error Handling.
 - 📄 **Paginación**: Utilidad genérica para respuestas paginadas.
-- 🛠️ **Arquitectura**: Módulos claros (auth, users, tenants, billing), servicios y controladores desacoplados.
+- 🛠️ **Arquitectura**: Módulos claros (auth, users, tenants, billing, storage).
 - 🗃️ **Base de Datos**: PostgreSQL con Drizzle ORM y migraciones versionadas.
-- 🐳 **Docker**: Totalmente dockerizado con multi-stage build y `docker-compose`.
+- 🐳 **Docker**: Totalmente dockerizado con multi-stage build.
 - 💳 **Facturación (Stripe)**: Planes de suscripción (`free`, `pro`, `enterprise`), webhooks y feature flags.
+- ☁️ **Storage**: Soporte para subida directa desde el cliente S3-compatible (AWS, Supabase, Cloudflare R2) con generación de Presigned URLs.
 - 🤝 **Onboarding Autónomo**: Registro público para nuevos tenants y dueños (Owners).
-- ⚙️ **Configuraciones Dinámicas**: Atributos en JSONB (moneda, zona horaria, colores, idioma) por cada Tenant.
+- ⚙️ **Configuraciones Dinámicas**: Atributos en JSONB (moneda, zona horaria, colores, idioma) y Logos/Avatares por cada Tenant y User.
 
 ---
 
@@ -27,6 +28,7 @@ Plantilla robusta y genérica para aplicaciones SaaS multi-tenancy con Node.js, 
 | Validación  | Zod                            |
 | Logs        | Pino                           |
 | Auth        | JWT (jsonwebtoken) + bcrypt    |
+| Storage     | AWS SDK v3 (S3 Compatible)     |
 
 ---
 
@@ -48,10 +50,12 @@ src/
 │   ├── rateLimiter.ts      # Rate limiting para /login
 │   ├── requireAuth.ts      # Verificación de JWT + estado de user/tenant
 │   └── requireRole.ts      # Guard de autorización por rol
-└── modules/
-    ├── auth/               # login, me, select-tenant, change-password
-    ├── users/              # CRUD de usuarios con aislamiento multi-tenant
-    └── tenants/            # CRUD de tenants (solo SUPERADMIN)
+├── modules/
+│   ├── auth/               # login, me, select-tenant, change-password
+│   ├── users/              # CRUD de usuarios (incluye actualización de avatarUrl)
+│   ├── tenants/            # CRUD de tenants (incluye actualización de logoUrl)
+│   ├── billing/            # Integración con Stripe (Cajas, Portal, Webhooks)
+│   └── storage/            # Generación de URLs firmadas (S3 Presigned URLs)
 ```
 
 ---
@@ -102,12 +106,24 @@ src/
 | `ALLOWED_ORIGINS`       | ❌        | `http://localhost:3001`    | Orígenes CORS permitidos (separados por coma)    |
 | `PORT`                  | ❌        | `3000`                     | Puerto del servidor                              |
 | `OTP_EXPIRES_IN_MINUTES`| ❌        | `10`                       | Expiración de OTPs en minutos                    |
+| `AWS_REGION`            | ✅        | `eu-central-1`             | Región del Bucket S3                             |
+| `AWS_ACCESS_KEY_ID`     | ✅        | —                          | Access Key (Para Supabase, MinIO, etc)           |
+| `AWS_SECRET_ACCESS_KEY` | ✅        | —                          | Secret Key                                       |
+| `AWS_S3_BUCKET`         | ✅        | —                          | Nombre del bucket S3                             |
+| `AWS_S3_ENDPOINT`       | ❌        | —                          | (Opcional) Requerido en Supabase, Cloudflare R2  |
+| `AWS_S3_CDN_URL`        | ❌        | —                          | Ruta base pública para servir los archivos       |
 
 Ejemplo mínimo:
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/reserva_db
 JWT_SECRET=super_secret_key_at_least_32_chars_long
 ALLOWED_ORIGINS=http://localhost:3001
+AWS_REGION=eu-central-1
+AWS_ACCESS_KEY_ID=tu-access-key
+AWS_SECRET_ACCESS_KEY=tu-secret-key
+AWS_S3_BUCKET=uploads
+AWS_S3_ENDPOINT=https://your-project.storage.supabase.co/storage/v1/s3
+AWS_S3_CDN_URL=https://your-project.supabase.co/storage/v1/object/public/uploads
 ```
 
 ---

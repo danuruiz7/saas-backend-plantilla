@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: reserva_api_dev
     ports:
-      - '3000:3000'
+      - '${PORT}:${PORT}'
     env_file:
       - .env
     environment:

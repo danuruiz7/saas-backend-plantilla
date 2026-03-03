@@ -1,21 +1,23 @@
 import crypto from 'node:crypto';
-import { eq, sql, and } from 'drizzle-orm';
+import { eq, sql, and, isNull, isNotNull } from 'drizzle-orm';
 import { db } from '@/db/db.js';
 import { tenants, users, userInvitations } from '@/db/schema.js';
 import { env } from '@/config/env.js';
 import { sendInvitationEmail } from '@/lib/email.js';
 import type { CreateTenantInput, UpdateTenantInput, CreateInvitationInput } from './tenants.schemas.js';
 
-export async function getTenantsService(page: number, limit: number): Promise<{ data: typeof tenants.$inferSelect[]; total: number }> {
+export async function getTenantsService(page: number, limit: number, includeDeleted = false): Promise<{ data: typeof tenants.$inferSelect[]; total: number }> {
   const offset = (page - 1) * limit;
+  const whereClause = includeDeleted ? isNotNull(tenants.deletedAt) : isNull(tenants.deletedAt);
 
   const data = await db.query.tenants.findMany({
+    where: whereClause,
     orderBy: (t, { asc }) => asc(t.name),
     limit,
     offset,
   });
 
-  const [countRes] = await db.select({ count: sql<number>`count(*)` }).from(tenants);
+  const [countRes] = await db.select({ count: sql<number>`count(*)` }).from(tenants).where(whereClause);
   const total = Number(countRes?.count ?? 0);
 
   return { data, total };
@@ -38,8 +40,21 @@ export async function updateTenant(id: string, input: UpdateTenantInput): Promis
 }
 
 export async function deleteTenant(id: string): Promise<boolean> {
-  const [deleted] = await db.delete(tenants).where(eq(tenants.id, id)).returning({ id: tenants.id });
+  const [deleted] = await db
+    .update(tenants)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(eq(tenants.id, id))
+    .returning({ id: tenants.id });
   return !!deleted;
+}
+
+export async function restoreTenant(id: string): Promise<boolean> {
+  const [restored] = await db
+    .update(tenants)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(tenants.id, id), isNotNull(tenants.deletedAt)))
+    .returning({ id: tenants.id });
+  return !!restored;
 }
 
 export async function setActiveTenant(id: string, isActive: boolean): Promise<boolean> {

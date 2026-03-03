@@ -13,7 +13,7 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().email(),
   APP_URL: z.string().url(),
   APP_NAME: z.string().default('SaaS Backend'),
-  ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
+  ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
   AWS_REGION: z.string().default('us-east-1'),

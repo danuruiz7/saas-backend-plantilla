@@ -1,12 +1,13 @@
 import type { Request, Response } from 'express';
 import { createUserSchema, updateUserSchema } from './users.schemas.js';
-import { getUsers, getUserById, createUser, updateUser, deleteUser, setActiveUser } from './users.service.js';
+import { getUsers, getUserById, createUser, updateUser, deleteUser, setActiveUser, restoreUser } from './users.service.js';
 import { getPaginationParams, formatPaginatedResponse } from '@/lib/pagination.js';
 
 export async function getUsersController(req: Request, res: Response): Promise<void> {
   try {
     const { page, limit } = getPaginationParams(req.query as Record<string, unknown>);
-    const { data, total } = await getUsers(req.user!.role, req.user!.tenantId, page, limit);
+    const includeDeleted = req.query['trash'] === 'true';
+    const { data, total } = await getUsers(req.user!.role, req.user!.tenantId, page, limit, includeDeleted);
     res.json(formatPaginatedResponse(data, total, page, limit));
   } catch {
     res.status(500).json({ error: 'INTERNAL_ERROR' });
@@ -69,4 +70,13 @@ export function setActiveUserController(isActive: boolean) {
       res.status(500).json({ error: 'INTERNAL_ERROR' });
     }
   };
+}
+export async function restoreUserController(req: Request, res: Response): Promise<void> {
+  try {
+    const restored = await restoreUser(String(req.params['id']), req.user!.role, req.user!.tenantId);
+    if (!restored) { res.status(404).json({ error: 'USER_NOT_FOUND' }); return; }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
 }

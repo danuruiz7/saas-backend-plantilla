@@ -36,9 +36,9 @@ export async function loginController(req: Request, res: Response): Promise<void
       userAgent: req.headers['user-agent'],
     };
 
-    const { accessToken, refreshToken } = await loginService(parsed.data, context);
+    const { accessToken, refreshToken, user } = await loginService(parsed.data, context);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, cookieOptions);
-    res.json({ accessToken });
+    res.json({ accessToken, refreshToken, user });
   } catch (err) {
     if (err instanceof Error && ['INVALID_CREDENTIALS', 'USER_DISABLED'].includes(err.message)) {
       res.status(401).json({ error: err.message });

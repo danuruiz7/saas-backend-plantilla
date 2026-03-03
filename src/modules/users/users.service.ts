@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, isNull, isNotNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { db } from '@/db/db.js';
 import { users } from '@/db/schema.js';
@@ -14,10 +14,20 @@ export async function getUsers(
   callerRole: string,
   callerTenantId: string | null,
   page: number,
-  limit: number
+  limit: number,
+  includeDeleted = false
 ): Promise<{ data: SafeUser[]; total: number }> {
   const offset = (page - 1) * limit;
-  const whereClause = isSuperAdmin(callerRole) ? undefined : eq(users.tenantId, callerTenantId!);
+  
+  const filters = [
+    includeDeleted ? isNotNull(users.deletedAt) : isNull(users.deletedAt),
+  ];
+
+  if (!isSuperAdmin(callerRole)) {
+    filters.push(eq(users.tenantId, callerTenantId!));
+  }
+
+  const whereClause = and(...filters);
 
   const data = await db.query.users.findMany({
     columns: { passwordHash: false },
@@ -34,11 +44,15 @@ export async function getUsers(
 
 
 export async function getUserById(id: string, callerRole: string, callerTenantId: string | null): Promise<SafeUser | null> {
+  const filters = [eq(users.id, id), isNull(users.deletedAt)];
+  
+  if (!isSuperAdmin(callerRole)) {
+    filters.push(eq(users.tenantId, callerTenantId!));
+  }
+
   const user = await db.query.users.findFirst({
     columns: { passwordHash: false },
-    where: isSuperAdmin(callerRole)
-      ? eq(users.id, id)
-      : and(eq(users.id, id), eq(users.tenantId, callerTenantId!)),
+    where: and(...filters),
   });
   return user ?? null;
 }
@@ -50,7 +64,7 @@ export async function createUser(input: CreateUserInput, callerRole: string, cal
   const [user] = await db
     .insert(users)
     .values({ email: input.email, passwordHash, name: input.name, role: input.role, tenantId })
-    .returning({ id: users.id, email: users.email, name: users.name, role: users.role, tenantId: users.tenantId, isActive: users.isActive, createdAt: users.createdAt, updatedAt: users.updatedAt });
+    .returning({ id: users.id, email: users.email, name: users.name, role: users.role, tenantId: users.tenantId, isActive: users.isActive, avatarUrl: users.avatarUrl, createdAt: users.createdAt, updatedAt: users.updatedAt, deletedAt: users.deletedAt });
 
   if (!user) throw new Error('CREATE_FAILED');
   return user;
@@ -65,18 +79,37 @@ export async function updateUser(id: string, input: UpdateUserInput, callerRole:
     .update(users)
     .set({ ...input, updatedAt: new Date() })
     .where(where)
-    .returning({ id: users.id, email: users.email, name: users.name, role: users.role, tenantId: users.tenantId, isActive: users.isActive, createdAt: users.createdAt, updatedAt: users.updatedAt });
+    .returning({ id: users.id, email: users.email, name: users.name, role: users.role, tenantId: users.tenantId, isActive: users.isActive, avatarUrl: users.avatarUrl, createdAt: users.createdAt, updatedAt: users.updatedAt, deletedAt: users.deletedAt });
 
   return user ?? null;
 }
 
 export async function deleteUser(id: string, callerRole: string, callerTenantId: string | null): Promise<boolean> {
   const where = isSuperAdmin(callerRole)
-    ? eq(users.id, id)
-    : and(eq(users.id, id), eq(users.tenantId, callerTenantId!));
+    ? and(eq(users.id, id), isNull(users.deletedAt))
+    : and(eq(users.id, id), eq(users.tenantId, callerTenantId!), isNull(users.deletedAt));
 
-  const [deleted] = await db.delete(users).where(where).returning({ id: users.id });
+  const [deleted] = await db
+    .update(users)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(where)
+    .returning({ id: users.id });
+    
   return !!deleted;
+}
+
+export async function restoreUser(id: string, callerRole: string, callerTenantId: string | null): Promise<boolean> {
+  const where = isSuperAdmin(callerRole)
+    ? and(eq(users.id, id), isNotNull(users.deletedAt))
+    : and(eq(users.id, id), eq(users.tenantId, callerTenantId!), isNotNull(users.deletedAt));
+
+  const [restored] = await db
+    .update(users)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(where)
+    .returning({ id: users.id });
+
+  return !!restored;
 }
 
 export async function setActiveUser(

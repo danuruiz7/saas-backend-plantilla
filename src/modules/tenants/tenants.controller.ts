@@ -1,12 +1,13 @@
 import type { Request, Response } from 'express';
 import { createTenantSchema, updateTenantSchema, createInvitationSchema } from './tenants.schemas.js';
-import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant, createInvitation, getInvitations, deleteInvitation, resendInvitation } from './tenants.service.js';
+import { getTenantsService, setActiveTenant, createTenant, updateTenant, deleteTenant, restoreTenant, createInvitation, getInvitations, deleteInvitation, resendInvitation } from './tenants.service.js';
 import { getPaginationParams, formatPaginatedResponse } from '@/lib/pagination.js';
 
 export async function getTenantsController(req: Request, res: Response): Promise<void> {
   try {
     const { page, limit } = getPaginationParams(req.query as Record<string, unknown>);
-    const { data, total } = await getTenantsService(page, limit);
+    const includeDeleted = req.query['trash'] === 'true';
+    const { data, total } = await getTenantsService(page, limit, includeDeleted);
     res.json(formatPaginatedResponse(data, total, page, limit));
   } catch {
     res.status(500).json({ error: 'INTERNAL_ERROR' });
@@ -74,6 +75,16 @@ export function setActiveTenantController(isActive: boolean) {
       res.status(500).json({ error: 'INTERNAL_ERROR' });
     }
   };
+}
+
+export async function restoreTenantController(req: Request, res: Response): Promise<void> {
+  try {
+    const restored = await restoreTenant(String(req.params['id']));
+    if (!restored) { res.status(404).json({ error: 'TENANT_NOT_FOUND' }); return; }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
 }
 
 export async function createInvitationController(req: Request, res: Response): Promise<void> {

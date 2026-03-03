@@ -172,11 +172,12 @@ AWS_S3_CDN_URL=https://your-project.supabase.co/storage/v1/object/public/uploads
 
 | Método | Ruta               | Descripción               |
 | ------ | ------------------ | ------------------------- |
-| GET    | `/`                | Lista usuarios (paginado) |
+| GET    | `/?trash=true`     | Lista usuarios en la papelera |
 | GET    | `/:id`             | Obtener usuario por ID    |
 | POST   | `/`                | Crear usuario             |
 | PATCH  | `/:id`             | Actualizar usuario        |
-| DELETE | `/:id`             | Eliminar usuario          |
+| DELETE | `/:id`             | Mover a la papelera       |
+| POST   | `/:id/restore`     | Restaurar desde la papelera|
 | PATCH  | `/:id/activate`    | Activar usuario           |
 | PATCH  | `/:id/deactivate`  | Desactivar usuario        |
 
@@ -186,12 +187,13 @@ AWS_S3_CDN_URL=https://your-project.supabase.co/storage/v1/object/public/uploads
 
 | Método | Ruta                                      | Descripción                                   |
 | ------ | ----------------------------------------- | --------------------------------------------- |
-| GET    | `/`                                       | Lista tenants (paginado)                      |
-| POST   | `/`                                       | Crear tenant                                  |
-| PATCH  | `/:id`                                    | Actualizar tenant                             |
-| DELETE | `/:id`                                    | Eliminar tenant                               |
-| PATCH  | `/:id/activate`                           | Activar tenant                                |
-| PATCH  | `/:id/deactivate`                         | Desactivar tenant                             |
+| GET    | `/?trash=true`     | Lista tenants en la papelera  |
+| POST   | `/`                | Crear tenant                                  |
+| PATCH  | `/:id`             | Actualizar tenant                             |
+| DELETE | `/:id`             | Mover a la papelera                           |
+| POST   | `/:id/restore`     | Restaurar desde la papelera                   |
+| PATCH  | `/:id/activate`    | Activar tenant                                |
+| PATCH  | `/:id/deactivate`  | Desactivar tenant                             |
 | POST   | `/:id/invitations`                        | Crear invitación para el tenant               |
 | GET    | `/:id/invitations`                        | Lista todas las invitaciones del tenant       |
 | DELETE | `/:id/invitations/:invitationId`          | Elimina una invitación pendiente              |
@@ -220,6 +222,16 @@ AWS_S3_CDN_URL=https://your-project.supabase.co/storage/v1/object/public/uploads
 | Método | Ruta      | Descripción           |
 | ------ | --------- | --------------------- |
 | GET    | `/health` | Estado del servidor.  |
+
+---
+
+## Sistema de Papelera (Soft Delete)
+
+El sistema implementa un mecanismo de **Soft Delete** para evitar la pérdida accidental de datos.
+
+- **Funcionamiento**: Al "eliminar" un usuario o tenant, se marca la columna `deletedAt` con la fecha actual. El registro deja de ser visible en las consultas normales y el login.
+- **Recuperación**: Se pueden listar los elementos eliminados añadiendo `?trash=true` a la URL (ej. `/api/users?trash=true`) y restaurarlos mediante el endpoint `POST /restore`.
+- **Limpieza Automática**: Existe un script de mantenimiento en `src/lib/cron.ts` que elimina permanentemente (Hard Delete) los registros que llevan **más de 30 días** en la papelera.
 
 ---
 

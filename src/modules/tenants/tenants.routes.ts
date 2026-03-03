@@ -7,6 +7,7 @@ import {
   updateTenantController,
   deleteTenantController,
   setActiveTenantController,
+  restoreTenantController,
   createInvitationController,
   getInvitationsController,
   deleteInvitationController,
@@ -27,6 +28,7 @@ tenantsRouter.get('/', getTenantsController);
 tenantsRouter.post('/', createTenantController);
 tenantsRouter.patch('/:id', updateTenantController);
 tenantsRouter.delete('/:id', deleteTenantController);
+tenantsRouter.post('/:id/restore', restoreTenantController);
 tenantsRouter.patch('/:id/deactivate', setActiveTenantController(false));
 tenantsRouter.patch('/:id/activate', setActiveTenantController(true));
 

@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { eq, lt, and, inArray } from 'drizzle-orm';
+import { eq, lt, and, inArray, isNull } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { db } from '@/db/db.js';
@@ -26,9 +26,21 @@ export async function meService(userId: string): Promise<Omit<typeof users.$infe
 export async function loginService(
   input: LoginInput,
   context?: { ipAddress?: string; userAgent?: string }
-): Promise<{ accessToken: string; refreshToken: string }> {
+): Promise<{ 
+  accessToken: string; 
+  refreshToken: string; 
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: 'SUPERADMIN' | 'OWNER' | 'STAFF';
+    tenantId: string | null;
+    isActive: boolean;
+    avatarUrl: string | null;
+  } 
+}> {
   const user = await db.query.users.findFirst({
-    where: eq(users.email, input.email),
+    where: and(eq(users.email, input.email), isNull(users.deletedAt)),
   });
 
   if (!user) throw new Error('INVALID_CREDENTIALS');
@@ -75,7 +87,19 @@ export async function loginService(
     userAgent: context?.userAgent,
   });
 
-  return { accessToken, refreshToken };
+  return { 
+    accessToken, 
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'SUPERADMIN' | 'OWNER' | 'STAFF',
+      tenantId: user.tenantId,
+      isActive: user.isActive,
+      avatarUrl: user.avatarUrl
+    }
+  };
 }
 
 export async function refreshService(token: string): Promise<{ accessToken: string }> {

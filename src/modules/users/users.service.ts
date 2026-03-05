@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, sql, isNull, isNotNull, ilike, or } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { db } from '@/db/db.js';
 import { users } from '@/db/schema.js';
@@ -15,6 +15,9 @@ export async function getUsers(
   callerTenantId: string | null,
   page: number,
   limit: number,
+  search?: string,
+  role?: string,
+  status?: string,
   includeDeleted = false
 ): Promise<{ data: SafeUser[]; total: number }> {
   const offset = (page - 1) * limit;
@@ -25,6 +28,19 @@ export async function getUsers(
 
   if (!isSuperAdmin(callerRole)) {
     filters.push(eq(users.tenantId, callerTenantId!));
+  }
+
+  if (search) {
+    filters.push(or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))!);
+  }
+
+  if (role) {
+    filters.push(eq(users.role, role));
+  }
+
+  if (status) {
+    if (status === 'ACTIVE') filters.push(eq(users.isActive, true));
+    if (status === 'INACTIVE') filters.push(eq(users.isActive, false));
   }
 
   const whereClause = and(...filters);

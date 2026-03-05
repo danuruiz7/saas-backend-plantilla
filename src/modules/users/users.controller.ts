@@ -7,7 +7,11 @@ export async function getUsersController(req: Request, res: Response): Promise<v
   try {
     const { page, limit } = getPaginationParams(req.query as Record<string, unknown>);
     const includeDeleted = req.query['trash'] === 'true';
-    const { data, total } = await getUsers(req.user!.role, req.user!.tenantId, page, limit, includeDeleted);
+    const search = req.query['search'] as string | undefined;
+    const role = req.query['role'] as string | undefined;
+    const status = req.query['status'] as string | undefined;
+    
+    const { data, total } = await getUsers(req.user!.role, req.user!.tenantId, page, limit, search, role, status, includeDeleted);
     res.json(formatPaginatedResponse(data, total, page, limit));
   } catch {
     res.status(500).json({ error: 'INTERNAL_ERROR' });
@@ -76,6 +80,21 @@ export async function restoreUserController(req: Request, res: Response): Promis
     const restored = await restoreUser(String(req.params['id']), req.user!.role, req.user!.tenantId);
     if (!restored) { res.status(404).json({ error: 'USER_NOT_FOUND' }); return; }
     res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+}
+
+export async function updateProfileController(req: Request, res: Response): Promise<void> {
+  const parsed = updateUserSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() }); return; }
+
+  try {
+    // Current user can only update their own profile
+    const userId = req.user!.sub;
+    const user = await updateUser(userId, parsed.data, req.user!.role, req.user!.tenantId);
+    if (!user) { res.status(404).json({ error: 'USER_NOT_FOUND' }); return; }
+    res.json(user);
   } catch {
     res.status(500).json({ error: 'INTERNAL_ERROR' });
   }

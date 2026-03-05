@@ -128,3 +128,10 @@ export async function resendInvitation(tenantId: string, invitationId: string): 
   await sendInvitationEmail(invitation.email, tenant.name, inviteUrl);
 }
 
+export async function getTenantBySlugService(slug: string): Promise<typeof tenants.$inferSelect | null> {
+  const tenant = await db.query.tenants.findFirst({
+    where: and(eq(tenants.slug, slug), isNull(tenants.deletedAt)),
+  });
+  return tenant ?? null;
+}
+
